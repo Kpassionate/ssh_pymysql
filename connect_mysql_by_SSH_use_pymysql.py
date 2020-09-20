@@ -31,7 +31,7 @@ class ControlDB(object):
             charset='utf8mb4'
         )
 
-    def connect_db_by_ssh(self, sql):
+    def connect_db_by_ssh(self, sql, type):
         with SSHTunnelForwarder(
                 (self.ssh_ip, 22),
                 ssh_username=self.ssh_username,
@@ -44,29 +44,56 @@ class ControlDB(object):
             try:
                 self.connect_db().ping(reconnect=True)
                 print("db is connecting")
-                cour = self.connect_db().cursor()
-                print(cour.execute(sql))
-                cour.close()
-
+                # 获取对象
+                cour = self.connect_db()
+                # 进行数据操作
+                self.execute_db(cour, sql, type)
             except:
                 traceback.print_exc()
                 self.connect_db()
                 print("db reconnect")
 
-    def start(self, mysql):
-        sql = mysql
-        self.connect_db_by_ssh(sql)
+    def execute_db(self, cour, sql, type):
+        if not cour:
+            print("#######   mysql connect error   #########")
+        cur = cour.cursor()
+        try:
+            result = cur.execute(sql)
+            if type:
+                if type == 1:
+                    rs = cur.fetchone()
+                if type == 2:
+                    rs = cur.fetchall()
+                # return rs
+                print(rs)
+                print(result)
+                print(cur.rowcount)
+                cour.close()
+            else:
+                cour.commit()
+                print(result)
+                cour.close()
+
+        except Exception as e:
+            print(e)
+
+    def start(self, mysql, type):
+        my_sql = mysql
+        self.connect_db_by_ssh(my_sql, type)
         print("执行完毕")
 
 
 if __name__ == "__main__":
-    ssh_username = 'root'
-    ssh_password = 'yxxxx'
-    ssh_ip = '121.41.36.x'
-    remote_addr = 'xxxx.com'
-    user = 'xxx'
+    ssh_username = 'xxxx'
+    ssh_password = 'yxxx2'
+    ssh_ip = 'xxx.xx.xx.xx'
+    remote_addr = 'rm-xxx.xx.xx.xxx.com'
+    user = 'xx'
     password = 'xxxx'
     database = 'xxx'
     db = ControlDB(ssh_username, ssh_password, ssh_ip, remote_addr, user, password, database)
-    sql = "SELECT * FROM policy_info;"
-    db.start(sql)
+    # sql = "SELECT * FROM policy_info;"
+    sql = "SELECT * from policy_info where policy_no='86000020201600606813';"
+    # sql = "update policy_info set status=8 where policy_no='86000020201600606813';"
+    type = 1
+    db.start(sql, type)
